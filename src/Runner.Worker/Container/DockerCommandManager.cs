@@ -115,6 +115,7 @@ namespace GitHub.Runner.Worker.Container
             dockerOptions.Add($"--label {DockerInstanceLabel}");
             dockerOptions.Add("--privileged");
             dockerOptions.Add("--cgroupns host");
+            dockerOptions.Add("--network host");
             if (!string.IsNullOrEmpty(container.ContainerWorkDirectory))
             {
                 dockerOptions.Add($"--workdir {container.ContainerWorkDirectory}");
