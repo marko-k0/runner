@@ -120,14 +120,14 @@ namespace GitHub.Runner.Worker.Container
             {
                 dockerOptions.Add($"--workdir {container.ContainerWorkDirectory}");
             }
-            if (!string.IsNullOrEmpty(container.ContainerNetwork))
-            {
-                dockerOptions.Add($"--network {container.ContainerNetwork}");
-            }
-            if (!string.IsNullOrEmpty(container.ContainerNetworkAlias))
-            {
-                dockerOptions.Add($"--network-alias {container.ContainerNetworkAlias}");
-            }
+            //if (!string.IsNullOrEmpty(container.ContainerNetwork))
+            //{
+            //    dockerOptions.Add($"--network {container.ContainerNetwork}");
+            //}
+            //if (!string.IsNullOrEmpty(container.ContainerNetworkAlias))
+            //{
+            //    dockerOptions.Add($"--network-alias {container.ContainerNetworkAlias}");
+            //}
             foreach (var port in container.UserPortMappings)
             {
                 dockerOptions.Add($"-p {port.Value}");
