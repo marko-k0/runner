@@ -113,6 +113,7 @@ namespace GitHub.Runner.Worker.Container
             // OPTIONS
             dockerOptions.Add($"--name {container.ContainerDisplayName}");
             dockerOptions.Add($"--label {DockerInstanceLabel}");
+            dockerOptions.Add("--privileged");
             if (!string.IsNullOrEmpty(container.ContainerWorkDirectory))
             {
                 dockerOptions.Add($"--workdir {container.ContainerWorkDirectory}");
