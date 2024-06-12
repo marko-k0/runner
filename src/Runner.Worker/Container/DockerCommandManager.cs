@@ -115,19 +115,18 @@ namespace GitHub.Runner.Worker.Container
             dockerOptions.Add($"--label {DockerInstanceLabel}");
             dockerOptions.Add("--privileged");
             dockerOptions.Add("--cgroupns host");
-            dockerOptions.Add("--network host");
             if (!string.IsNullOrEmpty(container.ContainerWorkDirectory))
             {
                 dockerOptions.Add($"--workdir {container.ContainerWorkDirectory}");
             }
-            //if (!string.IsNullOrEmpty(container.ContainerNetwork))
-            //{
-            //    dockerOptions.Add($"--network {container.ContainerNetwork}");
-            //}
-            //if (!string.IsNullOrEmpty(container.ContainerNetworkAlias))
-            //{
-            //    dockerOptions.Add($"--network-alias {container.ContainerNetworkAlias}");
-            //}
+            if (!string.IsNullOrEmpty(container.ContainerNetwork))
+            {
+                dockerOptions.Add($"--network {container.ContainerNetwork}");
+            }
+            if (!string.IsNullOrEmpty(container.ContainerNetworkAlias))
+            {
+                dockerOptions.Add($"--network-alias {container.ContainerNetworkAlias}");
+            }
             foreach (var port in container.UserPortMappings)
             {
                 dockerOptions.Add($"-p {port.Value}");
@@ -289,7 +288,7 @@ namespace GitHub.Runner.Worker.Container
 #if OS_WINDOWS
             return await ExecuteDockerCommandAsync(context, "network", $"create --label {DockerInstanceLabel} {network} --driver nat", context.CancellationToken);
 #else
-            return await ExecuteDockerCommandAsync(context, "network", $"create --label {DockerInstanceLabel} {network}", context.CancellationToken);
+            return await ExecuteDockerCommandAsync(context, "network", $"create --ipv6 --subnet 2001:0db8::/112 --label {DockerInstanceLabel} {network}", context.CancellationToken);
 #endif
         }
 
