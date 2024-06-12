@@ -92,12 +92,15 @@ namespace GitHub.Runner.Worker
 
             // Create local docker network for this job to avoid port conflict when multiple runners run on same machine.
             // All containers within a job join the same network
+            /*
             executionContext.Output("##[group]Create local container network");
             var containerNetwork = $"github_network_{Guid.NewGuid().ToString("N")}";
             await CreateContainerNetworkAsync(executionContext, containerNetwork);
             executionContext.JobContext.Container["network"] = new StringContextData(containerNetwork);
             executionContext.Output("##[endgroup]");
-
+            */
+            var containerNetwork = "host";
+            executionContext.JobContext.Container["network"] = new StringContextData(containerNetwork);
             foreach (var container in containers)
             {
                 container.ContainerNetwork = containerNetwork;
