@@ -163,7 +163,7 @@ namespace GitHub.Runner.Worker
                 await StopContainerAsync(executionContext, container);
             }
             // Remove the container network
-            await RemoveContainerNetworkAsync(executionContext, containers.First().ContainerNetwork);
+            //await RemoveContainerNetworkAsync(executionContext, containers.First().ContainerNetwork);
         }
 
         private async Task StartContainerAsync(IExecutionContext executionContext, ContainerInfo container)
