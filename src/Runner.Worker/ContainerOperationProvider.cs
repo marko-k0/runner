@@ -91,7 +91,7 @@ namespace GitHub.Runner.Worker
             executionContext.Output("##[endgroup]");
 
             // Network can be specified by user with --network option
-            string containerNetwork = container.ContainerNetwork;
+            string containerNetwork = containers.First().ContainerNetwork;
             if (string.IsNullOrEmpty(containerNetwork)) {
                 // Create local docker network for this job to avoid port conflict when multiple runners run on same machine.
                 // All containers within a job join the same network
@@ -165,7 +165,7 @@ namespace GitHub.Runner.Worker
                 await StopContainerAsync(executionContext, container);
             }
             var containerNetwork = containers.First().ContainerNetwork;
-            if containerNetwork.StartsWith("github_network_") {
+            if (containerNetwork.StartsWith("github_network_")) {
                 // Remove the container network if we created it ~ prefix github_network_
                 await RemoveContainerNetworkAsync(executionContext, containerNetwork);
             }
