@@ -90,13 +90,18 @@ namespace GitHub.Runner.Worker
             }
             executionContext.Output("##[endgroup]");
 
-            // Create local docker network for this job to avoid port conflict when multiple runners run on same machine.
-            // All containers within a job join the same network
-            executionContext.Output("##[group]Create local container network");
-            var containerNetwork = $"github_network_{Guid.NewGuid().ToString("N")}";
-            await CreateContainerNetworkAsync(executionContext, containerNetwork);
-            executionContext.JobContext.Container["network"] = new StringContextData(containerNetwork);
-            executionContext.Output("##[endgroup]");
+            // Network can be specified by user with --network option
+            string containerNetwork = container.ContainerNetwork;
+            if (string.IsNullOrEmpty(containerNetwork)) {
+                // Create local docker network for this job to avoid port conflict when multiple runners run on same machine.
+                // All containers within a job join the same network
+                executionContext.Output("##[group]Create local container network");
+                containerNetwork = $"github_network_{Guid.NewGuid():N}";
+
+                await CreateContainerNetworkAsync(executionContext, containerNetwork);
+                executionContext.JobContext.Container["network"] = new StringContextData(containerNetwork);
+                executionContext.Output("##[endgroup]");
+            }
 
             foreach (var container in containers)
             {
@@ -159,8 +164,11 @@ namespace GitHub.Runner.Worker
             {
                 await StopContainerAsync(executionContext, container);
             }
-            // Remove the container network
-            await RemoveContainerNetworkAsync(executionContext, containers.First().ContainerNetwork);
+            var containerNetwork = containers.First().ContainerNetwork;
+            if containerNetwork.StartsWith("github_network_") {
+                // Remove the container network if we created it ~ prefix github_network_
+                await RemoveContainerNetworkAsync(executionContext, containerNetwork);
+            }
         }
 
         private async Task StartContainerAsync(IExecutionContext executionContext, ContainerInfo container)
