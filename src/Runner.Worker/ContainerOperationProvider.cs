@@ -11,6 +11,7 @@ using GitHub.Runner.Sdk;
 using GitHub.DistributedTask.Pipelines.ContextData;
 using GitHub.DistributedTask.Pipelines.ObjectTemplating;
 using GitHub.Runner.Worker.Container.ContainerHooks;
+using Microsoft.IdentityModel.Tokens;
 #if OS_WINDOWS // keep win specific imports around even through we don't support containers on win at the moment
 using System.ServiceProcess;
 using Microsoft.Win32;
@@ -92,32 +93,8 @@ namespace GitHub.Runner.Worker
 
             foreach (var container in containers)
             {
-                string containerNetwork;
-                if (container.ContainerCreateOptions.Contains("--network"))
-                {
-                    // Extract the value of the --network argument
-                    var options = container.ContainerCreateOptions.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
-                    var networkOption = options.FirstOrDefault(opt => opt.StartsWith("--network="));
-                    if (networkOption != null)
-                    {
-                        // Parse the network name
-                        containerNetwork = networkOption.Substring("--network=".Length);
-                    }
-                    else
-                    {
-                        // Handle cases where --network is provided but not in the form "--network=<network_name>"
-                        int index = Array.IndexOf(options, "--network");
-                        if (index >= 0 && index < options.Length - 1)
-                        {
-                            containerNetwork = options[index + 1]; // The next argument should be the network name
-                        }
-                        else
-                        {
-                            throw new ArgumentException($"Invalid --network flag in ContainerCreateOptions: {container.ContainerCreateOptions}");
-                        }
-                    }
-                }
-                else
+                string containerNetwork = null;
+                if (!container.ContainerCreateOptions.Contains("--network"))
                 {
                     executionContext.Output("##[group]Create local container network");
                     containerNetwork = $"github_network_{Guid.NewGuid():N}";
@@ -189,7 +166,7 @@ namespace GitHub.Runner.Worker
             var removedNetworks = new HashSet<string>();
             foreach (var container in containers)
             {
-                if (container.ContainerNetwork.StartsWith("github_network_") && 
+                if (!container.ContainerNetwork.IsNullOrEmpty() && 
                     !removedNetworks.Contains(container.ContainerNetwork))
                 {
                     await RemoveContainerNetworkAsync(executionContext, container.ContainerNetwork);
