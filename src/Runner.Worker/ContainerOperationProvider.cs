@@ -11,6 +11,7 @@ using GitHub.Runner.Sdk;
 using GitHub.DistributedTask.Pipelines.ContextData;
 using GitHub.DistributedTask.Pipelines.ObjectTemplating;
 using GitHub.Runner.Worker.Container.ContainerHooks;
+using Microsoft.IdentityModel.Tokens;
 #if OS_WINDOWS // keep win specific imports around even through we don't support containers on win at the moment
 using System.ServiceProcess;
 using Microsoft.Win32;
@@ -90,16 +91,19 @@ namespace GitHub.Runner.Worker
             }
             executionContext.Output("##[endgroup]");
 
-            // Create local docker network for this job to avoid port conflict when multiple runners run on same machine.
-            // All containers within a job join the same network
-            executionContext.Output("##[group]Create local container network");
-            var containerNetwork = $"github_network_{Guid.NewGuid().ToString("N")}";
-            await CreateContainerNetworkAsync(executionContext, containerNetwork);
-            executionContext.JobContext.Container["network"] = new StringContextData(containerNetwork);
-            executionContext.Output("##[endgroup]");
-
             foreach (var container in containers)
             {
+                string containerNetwork = null;
+                if (!container.ContainerCreateOptions.Contains("--network"))
+                {
+                    executionContext.Output("##[group]Create local container network");
+                    containerNetwork = $"github_network_{Guid.NewGuid():N}";
+
+                    await CreateContainerNetworkAsync(executionContext, containerNetwork);
+                    executionContext.JobContext.Container["network"] = new StringContextData(containerNetwork);
+                    executionContext.Output("##[endgroup]");
+                }
+
                 container.ContainerNetwork = containerNetwork;
                 await StartContainerAsync(executionContext, container);
             }
@@ -159,8 +163,16 @@ namespace GitHub.Runner.Worker
             {
                 await StopContainerAsync(executionContext, container);
             }
-            // Remove the container network
-            await RemoveContainerNetworkAsync(executionContext, containers.First().ContainerNetwork);
+            var removedNetworks = new HashSet<string>();
+            foreach (var container in containers)
+            {
+                if (!container.ContainerNetwork.IsNullOrEmpty() && 
+                    !removedNetworks.Contains(container.ContainerNetwork))
+                {
+                    await RemoveContainerNetworkAsync(executionContext, container.ContainerNetwork);
+                    removedNetworks.Add(container.ContainerNetwork);
+                }
+            }
         }
 
         private async Task StartContainerAsync(IExecutionContext executionContext, ContainerInfo container)
