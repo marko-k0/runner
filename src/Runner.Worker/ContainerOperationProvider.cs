@@ -94,8 +94,10 @@ namespace GitHub.Runner.Worker
             foreach (var container in containers)
             {
                 string containerNetwork = null;
+                // Do not create a network if user specified --network within container options
                 if (!container.ContainerCreateOptions.Contains("--network"))
                 {
+                    // Create local docker network for this job to avoid port conflict when multiple runners run on same machine.
                     executionContext.Output("##[group]Create local container network");
                     containerNetwork = $"github_network_{Guid.NewGuid():N}";
 
@@ -166,9 +168,9 @@ namespace GitHub.Runner.Worker
             var removedNetworks = new HashSet<string>();
             foreach (var container in containers)
             {
-                if (!container.ContainerNetwork.IsNullOrEmpty() && 
-                    !removedNetworks.Contains(container.ContainerNetwork))
+                if (!container.ContainerNetwork.IsNullOrEmpty() && !removedNetworks.Contains(container.ContainerNetwork))
                 {
+                    // Remove the container network
                     await RemoveContainerNetworkAsync(executionContext, container.ContainerNetwork);
                     removedNetworks.Add(container.ContainerNetwork);
                 }
