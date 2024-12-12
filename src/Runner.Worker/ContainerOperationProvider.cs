@@ -167,7 +167,7 @@ namespace GitHub.Runner.Worker
             var removedNetworks = new HashSet<string>();
             foreach (var container in containers)
             {
-                if (!container.ContainerNetwork.IsNullOrEmpty() && !removedNetworks.Contains(container.ContainerNetwork))
+                if (!string.IsNullOrEmpty(container.ContainerNetwork) && !removedNetworks.Contains(container.ContainerNetwork))
                 {
                     // Remove the container network
                     await RemoveContainerNetworkAsync(executionContext, container.ContainerNetwork);
