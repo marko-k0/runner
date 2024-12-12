@@ -90,21 +90,43 @@ namespace GitHub.Runner.Worker
             }
             executionContext.Output("##[endgroup]");
 
-            // Network can be specified by user with --network option
-            string containerNetwork = containers.First().ContainerNetwork;
-            if (string.IsNullOrEmpty(containerNetwork)) {
-                // Create local docker network for this job to avoid port conflict when multiple runners run on same machine.
-                // All containers within a job join the same network
-                executionContext.Output("##[group]Create local container network");
-                containerNetwork = $"github_network_{Guid.NewGuid():N}";
-
-                await CreateContainerNetworkAsync(executionContext, containerNetwork);
-                executionContext.JobContext.Container["network"] = new StringContextData(containerNetwork);
-                executionContext.Output("##[endgroup]");
-            }
-
             foreach (var container in containers)
             {
+                string containerNetwork;
+                if (container.ContainerCreateOptions.Contains("--network"))
+                {
+                    // Extract the value of the --network argument
+                    var options = container.ContainerCreateOptions.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+                    var networkOption = options.FirstOrDefault(opt => opt.StartsWith("--network="));
+                    if (networkOption != null)
+                    {
+                        // Parse the network name
+                        containerNetwork = networkOption.Substring("--network=".Length);
+                    }
+                    else
+                    {
+                        // Handle cases where --network is provided but not in the form "--network=<network_name>"
+                        int index = Array.IndexOf(options, "--network");
+                        if (index >= 0 && index < options.Length - 1)
+                        {
+                            containerNetwork = options[index + 1]; // The next argument should be the network name
+                        }
+                        else
+                        {
+                            throw new ArgumentException($"Invalid --network flag in ContainerCreateOptions: {container.ContainerCreateOptions}");
+                        }
+                    }
+                }
+                else
+                {
+                    executionContext.Output("##[group]Create local container network");
+                    containerNetwork = $"github_network_{Guid.NewGuid():N}";
+
+                    await CreateContainerNetworkAsync(executionContext, containerNetwork);
+                    executionContext.JobContext.Container["network"] = new StringContextData(containerNetwork);
+                    executionContext.Output("##[endgroup]");
+                }
+
                 container.ContainerNetwork = containerNetwork;
                 await StartContainerAsync(executionContext, container);
             }
@@ -164,10 +186,15 @@ namespace GitHub.Runner.Worker
             {
                 await StopContainerAsync(executionContext, container);
             }
-            var containerNetwork = containers.First().ContainerNetwork;
-            if (containerNetwork.StartsWith("github_network_")) {
-                // Remove the container network if we created it ~ prefix github_network_
-                await RemoveContainerNetworkAsync(executionContext, containerNetwork);
+            var removedNetworks = new HashSet<string>();
+            foreach (var container in containers)
+            {
+                if (container.ContainerNetwork.StartsWith("github_network_") && 
+                    !removedNetworks.Contains(container.ContainerNetwork))
+                {
+                    await RemoveContainerNetworkAsync(executionContext, container.ContainerNetwork);
+                    removedNetworks.Add(container.ContainerNetwork);
+                }
             }
         }
 
