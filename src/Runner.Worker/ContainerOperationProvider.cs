@@ -11,7 +11,6 @@ using GitHub.Runner.Sdk;
 using GitHub.DistributedTask.Pipelines.ContextData;
 using GitHub.DistributedTask.Pipelines.ObjectTemplating;
 using GitHub.Runner.Worker.Container.ContainerHooks;
-using Microsoft.IdentityModel.Tokens;
 #if OS_WINDOWS // keep win specific imports around even through we don't support containers on win at the moment
 using System.ServiceProcess;
 using Microsoft.Win32;
